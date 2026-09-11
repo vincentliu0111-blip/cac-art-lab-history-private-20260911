@@ -1,6 +1,7 @@
 import json 
 from pathlib import Path
 import random
+from m1_tasks import feature_ranges, top_differences, make_thumbnail
 BASE=Path(__file__).resolve().parent
 WEB=BASE.parent/"web"
 IMG_OUT=WEB/"img"
@@ -34,18 +35,31 @@ rng=random.Random(7)
 N=60
 selected=rng.sample(ordered,N)
 print(selected[0])
+ranges=feature_ranges(features)
+print(len(ranges))
+used_files=set()
 output=[]
 for pair in selected:
     pid=pair["pair_id"]
     A=painting_by_id[pair["A"]]
     B=painting_by_id[pair["B"]]
+    fa=features[str(pair["A"])]
+    fb=features[str(pair["B"])]
+    top=top_differences(fa,fb,ranges)
+    used_files.add(A["file"])
+    used_files.add(B["file"])
     output.append({
         "pair_id":pid,
         "img_A":A["file"],
         "img_B":B["file"],
         "q_A":silver_by_id[pid]["q_A"],
         "model_q_A":pred_by_id[pid]["model_q_A"],
+        "top_features":top,
     })
+
+for filename in sorted(used_files):
+    make_thumbnail(BASE/"images"/filename,IMG_OUT/filename)
+print(len(used_files))
 
 with (WEB/"app_data.json").open("w",encoding="utf-8") as f:
     json.dump(output,f,ensure_ascii=False,indent=2)
